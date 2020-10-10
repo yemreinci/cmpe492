@@ -31,7 +31,7 @@ check(int n1, int n2, int n3, float* mat1, float* mat2, float* res)
             }
 
             long double err = t - r;
-            err = err * err;
+            err = err * err / n2;
 
             if (err > tolerance) {
                 return false;
@@ -113,7 +113,7 @@ main(int argc, char* argv[])
     }
 
     if (ever_failed) {
-        std::cerr << "\033[31;1mSome tests has failed!\033[0m" << std::endl;
+        std::cerr << "\033[31;1mSome tests have failed!\033[0m" << std::endl;
         return EXIT_FAILURE;
     }
 

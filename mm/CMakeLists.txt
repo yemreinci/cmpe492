@@ -1,2 +1,7 @@
-add_executable(test-mm0 test.cpp mm0.cpp)
-add_executable(test-mm1 test.cpp mm1.cpp)
+file(GLOB files "mm*.cpp")
+
+foreach(filename ${files})
+    string(REGEX REPLACE "^.*mm([0-9]+).cpp$" "\\1" mmid ${filename})
+    add_executable("test-mm${mmid}" test.cpp ${filename})
+    add_executable("bench-mm${mmid}" bench.cpp ${filename})
+endforeach()
