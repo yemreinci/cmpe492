@@ -1,0 +1,1 @@
+add_executable(test_generator test_generator.cpp)

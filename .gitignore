@@ -1,0 +1,4 @@
+build*/*
+emsdk/*
+.clangd/*
+compile_commands.json
