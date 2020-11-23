@@ -2,3 +2,4 @@ BasedOnStyle: Mozilla
 FixNamespaceComments: true
 IndentWidth: 4
 AccessModifierOffset: -4
+ColumnLimit: 100

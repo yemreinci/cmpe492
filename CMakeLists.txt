@@ -15,3 +15,4 @@ add_subdirectory(util)
 include_directories(util)
 
 add_subdirectory(mm)
+add_subdirectory(conv)
