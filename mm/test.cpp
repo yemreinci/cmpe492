@@ -4,6 +4,7 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
+#include <algorithm>
 
 #include "generator.hpp"
 #include "mm.hpp"
