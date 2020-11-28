@@ -3,8 +3,6 @@
 #include <vector>
 #include <cstdlib>
 
-#include "timer.hpp"
-#include <iostream>
 #include "mm.hpp"
 #include "simd.hpp"
 
@@ -14,7 +12,7 @@ void
 mm(int n1, int n2, int n3, float const* mat1, float const* mat2, float* res)
 {
     constexpr int nv = 4; // vector size
-    constexpr int nu = 1; // unrolling constant
+    constexpr int nu = 2; // unrolling constant
 
     const int n1r = (n1 + nu * nv - 1) / (nu * nv);
     const int n3r = (n3 + nu * nv - 1) / (nu * nv);
