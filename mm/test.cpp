@@ -81,8 +81,7 @@ main(int argc, char* argv[])
     if (argc == 1) {
         cases = get_cases();
     } else if (argc == 4) {
-        cases.emplace_back(
-          std::atoi(argv[1]), std::atoi(argv[2]), std::atoi(argv[3]));
+        cases.emplace_back(std::atoi(argv[1]), std::atoi(argv[2]), std::atoi(argv[3]));
     } else {
         std::cout << "usage: " << argv[0] << " [n1 n2 n3]" << std::endl;
         return EXIT_FAILURE;
@@ -91,8 +90,8 @@ main(int argc, char* argv[])
     bool ever_failed = false;
 
     for (auto [n1, n2, n3] : cases) {
-        std::cout << std::setw(4) << n1 << " " << std::setw(4) << n2 << " "
-                  << std::setw(4) << n3 << "\t\t" << std::flush;
+        std::cout << std::setw(4) << n1 << " " << std::setw(4) << n2 << " " << std::setw(4) << n3
+                  << "\t\t" << std::flush;
 
         std::vector<float> mat1(n1 * n2);
         std::vector<float> mat2(n2 * n3);
@@ -103,8 +102,7 @@ main(int argc, char* argv[])
 
         cmpe492::mm(n1, n2, n3, mat1.data(), mat2.data(), res.data());
 
-        bool check_res =
-          check(n1, n2, n3, mat1.data(), mat2.data(), res.data());
+        bool check_res = check(n1, n2, n3, mat1.data(), mat2.data(), res.data());
 
         if (!check_res)
             ever_failed = true;

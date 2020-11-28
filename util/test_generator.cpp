@@ -3,7 +3,9 @@
 #include <iostream>
 
 template<typename ValueT>
-void test(std::string_view type_name) {
+void
+test(std::string_view type_name)
+{
     {
         std::vector<ValueT> v(10);
         cmpe492::random_fill(v.begin(), v.end());

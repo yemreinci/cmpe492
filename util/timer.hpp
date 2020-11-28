@@ -24,7 +24,7 @@ public:
     {
         tp::duration dur = clock::now() - start_;
         double secs = std::chrono::duration<double>(dur).count();
-        
+
         auto old_prec = os_.precision(3);
         os_ << secs << " s\n";
         os_.precision(old_prec);
