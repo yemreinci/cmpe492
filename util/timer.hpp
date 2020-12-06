@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <ostream>
 #include <utility>
+#include <iomanip>
 
 namespace cmpe492 {
 
@@ -25,9 +26,7 @@ public:
         tp::duration dur = clock::now() - start_;
         double secs = std::chrono::duration<double>(dur).count();
 
-        auto old_prec = os_.precision(3);
-        os_ << secs << " s\n";
-        os_.precision(old_prec);
+        os_ << std::setprecision(3) << std::fixed << secs << " s\n";
     }
 };
 
