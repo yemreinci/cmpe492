@@ -13,5 +13,5 @@ foreach(filename ${files})
                       ALL
                       ${CMAKE_OBJDUMP} -d $<TARGET_OBJECTS:mm${mmid}> > ${CMAKE_CURRENT_BINARY_DIR}/mm${mmid}.s)
 
-    add_dependencies("mm${mmid}-assembly" "mm${mmid}")
+    add_dependencies("mm${mmid}-asm" "mm${mmid}")
 endforeach()
