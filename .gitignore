@@ -3,3 +3,4 @@ emsdk/*
 emsdk
 .clangd/*
 compile_commands.json
+**/__pycache__
