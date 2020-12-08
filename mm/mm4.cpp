@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <thread>
 #include <vector>
-#include <xmmintrin.h>
 
 #include "mm.hpp"
 #include "simd.hpp"

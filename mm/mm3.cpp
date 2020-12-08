@@ -1,5 +1,5 @@
 #include <cassert>
-#include <xmmintrin.h>
+#include <cstdlib>
 
 #include "mm.hpp"
 #include "simd.hpp"
