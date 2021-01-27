@@ -23,6 +23,8 @@ main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    std::cout << n1 << " " << n2 << " " << n3 << std::endl;
+
     std::vector<float> mat1(n1 * n2);
     std::vector<float> mat2(n2 * n3);
     std::vector<float> res(n1 * n3);

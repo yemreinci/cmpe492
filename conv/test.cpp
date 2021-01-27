@@ -24,7 +24,7 @@ test_conv(int n1,
 
         auto err = std::abs(res[i] - expected_res[i]);
 
-        if (err > 1e-5) {
+        if (err > 1e-3) {
             return false;
         }
     }
@@ -150,7 +150,7 @@ main(int argc, char* argv[])
     }
 
     if (ever_failed) {
-        std::cout << "There were failing tests!" << std::endl;
+        std::cout << "There are failing tests!" << std::endl;
     }
 
     return 0;
