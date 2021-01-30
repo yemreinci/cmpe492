@@ -4,7 +4,7 @@
 
 template<typename ValueT>
 void
-test(std::string_view type_name)
+test_random_fill(std::string_view type_name)
 {
     {
         std::vector<ValueT> v(10);
@@ -14,17 +14,17 @@ test(std::string_view type_name)
         for (int i = 0; i < 10; i++) {
             std::cout << " " << v[i];
         }
-        std::cout << std::endl;
+        std::cout << '\n';
     }
 }
 
 int
 main()
 {
-    test<int>("int");
-    test<long long>("long long");
-    test<float>("float");
-    test<double>("double");
+    test_random_fill<int>("int");
+    test_random_fill<long long>("long long");
+    test_random_fill<float>("float");
+    test_random_fill<double>("double");
     // test<std::string>("string"); // compile error
     return 0;
 }

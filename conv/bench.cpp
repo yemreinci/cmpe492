@@ -12,7 +12,7 @@ main(int argc, char* argv[])
 
     if (argc == 1) {
         n1 = n2 = 4000;
-        nw = 13;
+        nw = 15;
     } else if (argc == 4) {
         n1 = std::atoi(argv[1]);
         n2 = std::atoi(argv[2]);
@@ -21,6 +21,8 @@ main(int argc, char* argv[])
         std::cout << "usage: " << argv[0] << " [n1 n2 nw]" << std::endl;
         return 1;
     }
+
+    std::cout << n1 << " " << n2 << " " << nw << std::endl;
 
     std::vector<float> inp(n1 * n2);
     std::vector<float> win(nw * nw);

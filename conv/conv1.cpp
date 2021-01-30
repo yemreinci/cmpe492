@@ -35,7 +35,7 @@ conv(int n1, int n2, int nw, float const* inp, float const* win, float* res)
     for (int i = 0; i < n1; i++) {
         for (int j = 0; j < n2; j++) {
 
-            constexpr int nnw = 8;
+            constexpr int nnw = 4;
             float t[nnw] = {};
 
             for (int k1 = 0; k1 < nw; k1++) {
@@ -54,7 +54,6 @@ conv(int n1, int n2, int nw, float const* inp, float const* win, float* res)
                 t[0] += t[k];
             }
             res[i * n2 + j] = t[0];
-            
         }
     }
 

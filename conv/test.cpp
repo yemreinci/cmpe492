@@ -22,9 +22,9 @@ test_conv(int n1,
             return false;
         }
 
-        auto err = std::abs(res[i] - expected_res[i]);
+        auto err = std::abs((res[i] - expected_res[i]) / nw);
 
-        if (err > 1e-3) {
+        if (err > 1e-5) {
             return false;
         }
     }
