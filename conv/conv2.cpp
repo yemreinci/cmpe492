@@ -1,6 +1,5 @@
 #include <cassert>
 #include <iostream>
-#include <malloc/_malloc.h>
 
 #include "conv.hpp"
 #include "simd.hpp"
