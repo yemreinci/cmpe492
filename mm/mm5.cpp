@@ -57,8 +57,8 @@ mm(int n1, int n2, int n3, float const* mat1, float const* mat2, float* res)
                 float8_t t[nu][nu][nv] = {};
 
                 for (int k = 0; k < n2; k++) {
+                    
                     for (int q1 = 0; q1 < nu; q1++) {
-
                         for (int q2 = 0; q2 < nu; q2++) {
                             float8_t v0_000 = mat1_wrap[(i * n2 * nu) + (k * nu) + (q1)];
                             float8_t v1_000 = mat2_t_wrap[(j * n2 * nu) + (k * nu) + q2];

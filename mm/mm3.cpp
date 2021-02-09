@@ -9,8 +9,8 @@ namespace cmpe492 {
 void
 mm(int n1, int n2, int n3, float const* mat1, float const* mat2, float* res)
 {
-    constexpr int nt = 4;
-    constexpr int nn = 4;
+    constexpr int nt = 4; // vector size
+    constexpr int nn = 4; // unrolling contant
 
     const int na1 = (n1 + nn - 1) / nn * nn;
     const int na3 = (n3 + nn - 1) / nn * nn;

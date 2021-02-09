@@ -142,25 +142,16 @@ class Firefox(BrowserBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, browser='firefox')
     
-
-class WAVM(Platform):
+class WASIBase(Platform):
     def __init__(self, *args, **kwargs):
         self.wasi_sdk_prefix = self._get_wasi_sdk_prefix()
-        self.wavm_prefix = self._get_wavm_prefix()
-        self.wavm_exe = f'{self.wavm_prefix}/bin/wavm'
-
+        
         super().__init__(*args, **kwargs)
 
     def _get_wasi_sdk_prefix(self):
         value = os.environ.get('WASI_SDK_PREFIX')
         if not value:
             raise RuntimeError('set environment variable WASI_SDK_PREFIX')
-        return os.path.abspath(value)
-
-    def _get_wavm_prefix(self):
-        value = os.environ.get('WAVM_PREFIX')
-        if not value:
-            raise RuntimeError('set environment variable WAVM_PREFIX')
         return os.path.abspath(value)
 
     def _do_configure(self):
@@ -174,6 +165,20 @@ class WAVM(Platform):
             '-DCMAKE_CXX_COMPILER_WORKS=1',
             f'-DCMAKE_CXX_FLAGS=-fno-exceptions --sysroot {self.wasi_sdk_prefix}/share/wasi-sysroot -msimd128'
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+class WAVM(WASIBase):
+    def __init__(self, *args, **kwargs):
+        self.wavm_prefix = self._get_wavm_prefix()
+        self.wavm_exe = f'{self.wavm_prefix}/bin/wavm'
+
+        super().__init__(*args, **kwargs)
+
+    def _get_wavm_prefix(self):
+        value = os.environ.get('WAVM_PREFIX')
+        if not value:
+            raise RuntimeError('set environment variable WAVM_PREFIX')
+        return os.path.abspath(value)
 
     def _do_test(self, task: str, version: int) -> bool:
         try:
@@ -193,6 +198,54 @@ class WAVM(Platform):
         runtime = self._parse_runtime(output)
         return runtime
 
+class Wasmer(WASIBase):
+    def _do_test(self, task: str, version: int) -> bool:
+        try:
+            subprocess.check_call(
+                ['wasmer', 'run', '--enable-all', f'./{task}/test-{task}{version}'],
+                cwd=self.build_dir, 
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def _do_benchmark(self, task: str, version: int) -> float:
+        output = subprocess.check_output(
+            ['wasmer', 'run', '--enable-all', f'./{task}/bench-{task}{version}'],
+            cwd=self.build_dir)
+        output = output.decode()
+        runtime = self._parse_runtime(output)
+        return runtime
+
+class Wasmtime(WASIBase):
+    def __init__(self, *args, **kwargs):
+        self.wasmtime_exe = self._get_wasmtime_exe()
+        super().__init__(*args, **kwargs)
+
+    def _get_wasmtime_exe(self):
+        value = os.environ.get('WASMTIME_EXE')
+        if not value:
+            raise RuntimeError('set environ variable WASMTIME_EXE')
+        return value
+
+    def _do_test(self, task: str, version: int) -> bool:
+        try:
+            subprocess.check_call(
+                [f'{self.wasmtime_exe}', 'run', '--enable-all', f'./{task}/test-{task}{version}'],
+                cwd=self.build_dir, 
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def _do_benchmark(self, task: str, version: int) -> float:
+        output = subprocess.check_output(
+            [f'{self.wasmtime_exe}', 'run', '--enable-all', f'./{task}/bench-{task}{version}'],
+            cwd=self.build_dir)
+        output = output.decode()
+        runtime = self._parse_runtime(output)
+        return runtime
+
 
 def main(argv):
     tasks = ['mm', 'conv']
@@ -201,6 +254,8 @@ def main(argv):
         'chrome': Chrome,
         'firefox': Firefox,
         'wavm': WAVM,
+        'wasmer': Wasmer,
+        'wasmtime': Wasmtime
     }
 
     parser = argparse.ArgumentParser()
