@@ -3,13 +3,10 @@ import subprocess
 import os
 import argparse
 import re
-import logging
-import http.server
-import socketserver
-import threading
 import time
-from selenium import webdriver
 
+class TestFailedError(BaseException):
+    pass
 
 class Platform:
     def __init__(self, build_dir: str, name='unknown'):
@@ -19,8 +16,11 @@ class Platform:
         self._do_configure()
 
     def _parse_runtime(self, benchmark_out: str) -> float:
-        m = re.match(r'^runtime:\s+([\d\.]+)', benchmark_out)
-        return float(m.group(1))
+        for line in benchmark_out.split('\n'):
+            m = re.match(r'^runtime:\s+([\d\.]+)', line)
+            if m:
+                return float(m.group(1))
+        raise RuntimeError('unexpected benchmark output')
 
     def build(self, task: str, version: int):
         print(f'Building {task}{version} for platform "{self.name}" ...')
@@ -34,8 +34,11 @@ class Platform:
 
     def test(self, task: str, version: int) -> bool:
         self.build(task, version)
+        
         print(f'Testing {task}{version} on platform "{self.name}" ...')
-        return self._do_test(task, version)
+        success = self._do_test(task, version)
+        if not success:
+            raise TestFailedError()
 
     def benchmark(self, task: str, version: int, best_of=1, skip_tests=False) -> float:
         if not skip_tests:
@@ -83,7 +86,7 @@ class Native(Platform):
                 cwd=self.build_dir, 
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
-        except CalledProcessError:
+        except subprocess.CalledProcessError:
             return False
 
     def _do_benchmark(self, task: str, version: int) -> float:
@@ -128,13 +131,7 @@ class BrowserBase(Platform):
         ], cwd=self.build_dir)
 
         output = output.decode()
-
-        for line in output.split('\n'):
-            if line.startswith('runtime:'):
-                return self._parse_runtime(line)
-        
-        raise RuntimeError('unexpected output')
-
+        return self._parse_runtime(output)
 
 class Chrome(BrowserBase):
     def __init__(self, *args, **kwargs):
@@ -146,12 +143,64 @@ class Firefox(BrowserBase):
         super().__init__(*args, **kwargs, browser='firefox')
     
 
+class WAVM(Platform):
+    def __init__(self, *args, **kwargs):
+        self.wasi_sdk_prefix = self._get_wasi_sdk_prefix()
+        self.wavm_prefix = self._get_wavm_prefix()
+        self.wavm_exe = f'{self.wavm_prefix}/bin/wavm'
+
+        super().__init__(*args, **kwargs)
+
+    def _get_wasi_sdk_prefix(self):
+        value = os.environ.get('WASI_SDK_PREFIX')
+        if not value:
+            raise RuntimeError('set environment variable WASI_SDK_PREFIX')
+        return os.path.abspath(value)
+
+    def _get_wavm_prefix(self):
+        value = os.environ.get('WAVM_PREFIX')
+        if not value:
+            raise RuntimeError('set environment variable WAVM_PREFIX')
+        return os.path.abspath(value)
+
+    def _do_configure(self):
+        subprocess.check_call([
+            'cmake',
+            os.getcwd(),
+            f'-DWASI_SDK_PREFIX={self.wasi_sdk_prefix}',
+            f'-DCMAKE_BUILD_TYPE=Release', 
+            f'-DCMAKE_TOOLCHAIN_FILE={self.wasi_sdk_prefix}/share/cmake/wasi-sdk.cmake',
+            '-DCMAKE_C_COMPILER_WORKS=1',
+            '-DCMAKE_CXX_COMPILER_WORKS=1',
+            f'-DCMAKE_CXX_FLAGS=-fno-exceptions --sysroot {self.wasi_sdk_prefix}/share/wasi-sysroot -msimd128'
+        ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def _do_test(self, task: str, version: int) -> bool:
+        try:
+            subprocess.check_call(
+                [self.wavm_exe, 'run', '--enable', 'all', f'./{task}/test-{task}{version}'],
+                cwd=self.build_dir, 
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def _do_benchmark(self, task: str, version: int) -> float:
+        output = subprocess.check_output(
+            [self.wavm_exe, 'run', '--enable', 'all', f'./{task}/bench-{task}{version}'],
+            cwd=self.build_dir)
+        output = output.decode()
+        runtime = self._parse_runtime(output)
+        return runtime
+
+
 def main(argv):
     tasks = ['mm', 'conv']
     platforms = {
         'native': Native,
         'chrome': Chrome,
         'firefox': Firefox,
+        'wavm': WAVM,
     }
 
     parser = argparse.ArgumentParser()
@@ -175,7 +224,11 @@ def main(argv):
                 continue
 
             for version in requested_versions:
-                runtime = platform.benchmark(task, version, best_of=args.best_of, skip_tests=args.skip_tests)
+                try:
+                    runtime = platform.benchmark(task, version, best_of=args.best_of, skip_tests=args.skip_tests)
+                except TestFailedError:
+                    print('Failing tests, quiting!')
+                    exit(1)
 
                 results.append([platform_name, task, version, runtime])
 
