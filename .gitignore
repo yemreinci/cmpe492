@@ -4,3 +4,4 @@ emsdk
 .clangd/*
 compile_commands.json
 **/__pycache__
+**/.DS_Store

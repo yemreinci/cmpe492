@@ -1,6 +1,6 @@
 #include <cassert>
-#include <vector>
 #include <cstdlib>
+#include <vector>
 
 #include "mm.hpp"
 #include "simd.hpp"
@@ -61,11 +61,15 @@ mm(int n1, int n2, int n3, float const* mat1, float const* mat2, float* res)
                         float8_t v0_000 = mat1_wrap[(i * n2 * nu) + (k * nu) + (q1)];
                         float8_t v1_000 = mat2_t_wrap[(j * n2 * nu) + (k * nu) + q2];
 
-                        float8_t v1_001 = __builtin_shufflevector(v1_000, v1_000, 1, 0, 3, 2, 5, 4, 7, 6);
+                        float8_t v1_001 =
+                          __builtin_shufflevector(v1_000, v1_000, 1, 0, 3, 2, 5, 4, 7, 6);
 
-                        float8_t v0_100 = __builtin_shufflevector(v0_000, v0_000, 4, 5, 6, 7, 0, 1, 2, 3);
-                        float8_t v0_010 = __builtin_shufflevector(v0_000, v0_000, 2, 3, 0, 1, 6, 7, 4, 5);
-                        float8_t v0_110 = __builtin_shufflevector(v0_100, v0_100, 2, 3, 0, 1, 6, 7, 4, 5);
+                        float8_t v0_100 =
+                          __builtin_shufflevector(v0_000, v0_000, 4, 5, 6, 7, 0, 1, 2, 3);
+                        float8_t v0_010 =
+                          __builtin_shufflevector(v0_000, v0_000, 2, 3, 0, 1, 6, 7, 4, 5);
+                        float8_t v0_110 =
+                          __builtin_shufflevector(v0_100, v0_100, 2, 3, 0, 1, 6, 7, 4, 5);
 
                         t[q1][q2][0] += v0_000 * v1_000;
                         t[q1][q2][1] += v0_000 * v1_001;

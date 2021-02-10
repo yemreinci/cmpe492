@@ -4,6 +4,7 @@ import os
 import argparse
 import re
 import time
+from typing import List
 
 class TestFailedError(BaseException):
     pass
@@ -22,37 +23,37 @@ class Platform:
                 return float(m.group(1))
         raise RuntimeError('unexpected benchmark output')
 
-    def build(self, task: str, version: int):
-        print(f'Building {task}{version} for platform "{self.name}" ...')
+    def build(self, task: str, version: str):
+        print(f'Building {task}_{version} for platform "{self.name}" ...')
         
         subprocess.check_call([
             'cmake',
             '--build', '.',
-            '--target', f'test-{task}{version}', f'bench-{task}{version}',
+            '--target', f'test-{task}_{version}', f'bench-{task}_{version}',
             '--parallel', '2',
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    def test(self, task: str, version: int) -> bool:
+    def test(self, task: str, version: str) -> bool:
         self.build(task, version)
         
-        print(f'Testing {task}{version} on platform "{self.name}" ...')
+        print(f'Testing {task}_{version} on platform "{self.name}" ...')
         success = self._do_test(task, version)
         if not success:
             raise TestFailedError()
 
-    def benchmark(self, task: str, version: int, best_of=1, skip_tests=False) -> float:
+    def benchmark(self, task: str, version: str, n_repeat=1, skip_tests=False) -> List[float]:
         if not skip_tests:
             self.test(task, version)
             
-        print(f'Benchmarking {task}{version} on platform "{self.name}" ...')
+        print(f'Benchmarking {task}_{version} on platform "{self.name}" ...')
 
-        best_runtime = None
-        for i in range(best_of):
+        runtimes = []
+
+        for i in range(n_repeat):
             runtime = self._do_benchmark(task, version)
             print(f'Benchmark {i+1}:', runtime)
-            if best_runtime is None or runtime < best_runtime:
-                best_runtime = runtime
-        return best_runtime
+            runtimes.append(runtime)
+        return runtimes
 
     def close(self):
         self._do_close()
@@ -60,10 +61,10 @@ class Platform:
     def _do_configure(self):
         raise NotImplementedError
 
-    def _do_test(self, task: str, version: int):
+    def _do_test(self, task: str, version: str):
         raise NotImplementedError
 
-    def _do_benchmark(self, task: str, version: int) -> float:
+    def _do_benchmark(self, task: str, version: str) -> float:
         raise NotImplementedError
 
     def _do_close(self):
@@ -79,19 +80,19 @@ class Native(Platform):
             '-DCMAKE_CXX_FLAGS=-march=native',
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    def _do_test(self, task: str, version: int) -> bool:
+    def _do_test(self, task: str, version: str) -> bool:
         try:
             subprocess.check_call(
-                [f'./{task}/test-{task}{version}'],
+                [f'./{task}/test-{task}_{version}'],
                 cwd=self.build_dir, 
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
         except subprocess.CalledProcessError:
             return False
 
-    def _do_benchmark(self, task: str, version: int) -> float:
+    def _do_benchmark(self, task: str, version: str) -> float:
         output = subprocess.check_output(
-            [f'./{task}/bench-{task}{version}'], cwd=self.build_dir)
+            [f'./{task}/bench-{task}_{version}'], cwd=self.build_dir)
         output = output.decode()
         runtime = self._parse_runtime(output)
         return runtime
@@ -110,23 +111,23 @@ class BrowserBase(Platform):
             '-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG'
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    def _do_test(self, task: str, version: int):
+    def _do_test(self, task: str, version: str):
         try:
             subprocess.check_call([
                 'emrun',
                 '--browser', self.browser,
-                f'{task}/test-{task}{version}.html',
+                f'{task}/test-{task}_{version}.html',
                 '--kill_exit'
             ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             return False
         return True
 
-    def _do_benchmark(self, task: str, version: int):
+    def _do_benchmark(self, task: str, version: str):
         output = subprocess.check_output([
             'emrun',
             '--browser', 'chrome',
-            f'{task}/bench-{task}{version}.html',
+            f'{task}/bench-{task}_{version}.html',
             '--kill_exit'
         ], cwd=self.build_dir)
 
@@ -180,38 +181,38 @@ class WAVM(WASIBase):
             raise RuntimeError('set environment variable WAVM_PREFIX')
         return os.path.abspath(value)
 
-    def _do_test(self, task: str, version: int) -> bool:
+    def _do_test(self, task: str, version: str) -> bool:
         try:
             subprocess.check_call(
-                [self.wavm_exe, 'run', '--enable', 'all', f'./{task}/test-{task}{version}'],
+                [self.wavm_exe, 'run', '--enable', 'all', f'./{task}/test-{task}_{version}'],
                 cwd=self.build_dir, 
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
         except subprocess.CalledProcessError:
             return False
 
-    def _do_benchmark(self, task: str, version: int) -> float:
+    def _do_benchmark(self, task: str, version: str) -> float:
         output = subprocess.check_output(
-            [self.wavm_exe, 'run', '--enable', 'all', f'./{task}/bench-{task}{version}'],
+            [self.wavm_exe, 'run', '--enable', 'all', f'./{task}/bench-{task}_{version}'],
             cwd=self.build_dir)
         output = output.decode()
         runtime = self._parse_runtime(output)
         return runtime
 
 class Wasmer(WASIBase):
-    def _do_test(self, task: str, version: int) -> bool:
+    def _do_test(self, task: str, version: str) -> bool:
         try:
             subprocess.check_call(
-                ['wasmer', 'run', '--enable-all', f'./{task}/test-{task}{version}'],
+                ['wasmer', 'run', '--enable-all', f'./{task}/test-{task}_{version}'],
                 cwd=self.build_dir, 
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
         except subprocess.CalledProcessError:
             return False
 
-    def _do_benchmark(self, task: str, version: int) -> float:
+    def _do_benchmark(self, task: str, version: str) -> float:
         output = subprocess.check_output(
-            ['wasmer', 'run', '--enable-all', f'./{task}/bench-{task}{version}'],
+            ['wasmer', 'run', '--enable-all', f'./{task}/bench-{task}_{version}'],
             cwd=self.build_dir)
         output = output.decode()
         runtime = self._parse_runtime(output)
@@ -228,19 +229,19 @@ class Wasmtime(WASIBase):
             raise RuntimeError('set environ variable WASMTIME_EXE')
         return value
 
-    def _do_test(self, task: str, version: int) -> bool:
+    def _do_test(self, task: str, version: str) -> bool:
         try:
             subprocess.check_call(
-                [f'{self.wasmtime_exe}', 'run', '--enable-all', f'./{task}/test-{task}{version}'],
+                [f'{self.wasmtime_exe}', 'run', '--enable-all', f'./{task}/test-{task}_{version}'],
                 cwd=self.build_dir, 
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
         except subprocess.CalledProcessError:
             return False
 
-    def _do_benchmark(self, task: str, version: int) -> float:
+    def _do_benchmark(self, task: str, version: str) -> float:
         output = subprocess.check_output(
-            [f'{self.wasmtime_exe}', 'run', '--enable-all', f'./{task}/bench-{task}{version}'],
+            [f'{self.wasmtime_exe}', 'run', '--enable-all', f'./{task}/bench-{task}_{version}'],
             cwd=self.build_dir)
         output = output.decode()
         runtime = self._parse_runtime(output)
@@ -260,10 +261,10 @@ def main(argv):
 
     parser = argparse.ArgumentParser()
     for task in tasks:
-        parser.add_argument(f'--{task}', type=int, nargs='+')
+        parser.add_argument(f'--{task}', type=str, nargs='+')
 
     parser.add_argument('--platforms', type=str, nargs='+')    
-    parser.add_argument('--best-of', type=int, nargs='?', default=3)
+    parser.add_argument('--n-repeat', type=int, nargs='?', default=3)
     parser.add_argument('--skip-tests', action='store_true')
 
     args = parser.parse_args()
@@ -280,7 +281,7 @@ def main(argv):
 
             for version in requested_versions:
                 try:
-                    runtime = platform.benchmark(task, version, best_of=args.best_of, skip_tests=args.skip_tests)
+                    runtime = platform.benchmark(task, version, n_repeat=args.n_repeat, skip_tests=args.skip_tests)
                 except TestFailedError:
                     print('Failing tests, quiting!')
                     exit(1)
@@ -289,7 +290,15 @@ def main(argv):
 
         platform.close()
 
-    print('\n'.join(['\t'.join(str(e) for e in row) for row in results]))
+    def stat(a):
+        average = sum(a) / len(a)
+        var = 0
+        for x in a:
+            var += (x-average)**2 / len(a)
+        std = var ** 0.5
+        return f'{average:.3f}±{std:.3f}'
+
+    print('\n'.join(['\t'.join(str(e) for e in row[:-1]) + '\t' + stat(row[-1]) for row in results]))
 
 if __name__ == '__main__':
     main(sys.argv)
