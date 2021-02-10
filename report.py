@@ -108,14 +108,13 @@ class BrowserBase(Platform):
 
     def _do_configure(self):
         if not os.environ.get('EMSDK'):
-            raise RuntimeError('load Emscripten environment')
+            raise RuntimeError('Emscripten environment is not set')
 
         subprocess.check_call([
             'emcmake', 'cmake',
             os.getcwd(),
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DCMAKE_CXX_FLAGS=-msimd128  -D__SSE__  -s TOTAL_MEMORY=1000MB -pthread -s PTHREAD_POOL_SIZE=4 -s EXIT_RUNTIME=1 --emrun',
-            '-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG'
+            '-DCMAKE_CXX_FLAGS=-msimd128 -s TOTAL_MEMORY=1000MB -pthread -s PTHREAD_POOL_SIZE=4 -s EXIT_RUNTIME=1 --emrun'
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def _do_test(self, task: str, version: str):
@@ -144,12 +143,14 @@ class BrowserBase(Platform):
 
 class Chrome(BrowserBase):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, browser='chrome')
+        super().__init__(*args, **kwargs,
+                         browser='/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary')
 
 
 class Firefox(BrowserBase):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, browser='firefox')
+        super().__init__(*args, **kwargs,
+                         browser='/Applications/Firefox Nightly.app/Contents/MacOS/firefox')
 
 
 class WASIBase(Platform):
@@ -307,8 +308,10 @@ def main(argv):
                     print(f'Error while processing {task}_{version}: {e}')
                 else:
                     for rt in running_times:
-                        results_csv.writerow([platform_name, task, version, rt])
-                    results.append([platform_name, task, version, running_times])
+                        results_csv.writerow(
+                            [platform_name, task, version, rt])
+                    results.append(
+                        [platform_name, task, version, running_times])
 
         platform.close()
 
