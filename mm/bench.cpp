@@ -32,7 +32,7 @@ main(int argc, char* argv[])
     cmpe492::random_fill(mat1.begin(), mat1.end());
     cmpe492::random_fill(mat2.begin(), mat2.end());
 
-    std::cout << "runtime:\t" << std::flush;
+    std::cout << "running time:\t" << std::flush;
     {
         cmpe492::timer t{ std::cout };
         cmpe492::mm(n1, n2, n3, mat1.data(), mat2.data(), res.data());

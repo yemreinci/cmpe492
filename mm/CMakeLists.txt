@@ -19,15 +19,16 @@ set_target_properties(
         COMPILE_OPTIONS -ffast-math        
 )
 
-
-find_package(BLAS REQUIRED)
-add_executable(test-mm_blas test.cpp mm_blas.cpp)
-add_executable(bench-mm_blas bench.cpp mm_blas.cpp)
-target_include_directories(
-    test-mm_blas PRIVATE ${CBLAS_INCLUDE_DIRS}
-)
-target_include_directories(
-    bench-mm_blas PRIVATE ${CBLAS_INCLUDE_DIRS}
-)
-target_link_libraries(test-mm_blas PRIVATE ${CBLAS_LIBRARIES})
-target_link_libraries(bench-mm_blas PRIVATE ${CBLAS_LIBRARIES})
+find_package(CBLAS)
+if(CBLAS_FOUND)
+    add_executable(test-mm_blas test.cpp mm_blas.cpp)
+    add_executable(bench-mm_blas bench.cpp mm_blas.cpp)
+    target_include_directories(
+        test-mm_blas PRIVATE ${CBLAS_INCLUDE_DIRS}
+    )
+    target_include_directories(
+        bench-mm_blas PRIVATE ${CBLAS_INCLUDE_DIRS}
+    )
+    target_link_libraries(test-mm_blas PRIVATE ${CBLAS_LIBRARIES})
+    target_link_libraries(bench-mm_blas PRIVATE ${CBLAS_LIBRARIES})
+endif()

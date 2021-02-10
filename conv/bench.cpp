@@ -31,7 +31,7 @@ main(int argc, char* argv[])
     cmpe492::random_fill(inp.begin(), inp.end());
     cmpe492::random_fill(win.begin(), win.end());
 
-    std::cout << "runtime:\t" << std::flush;
+    std::cout << "running time:\t" << std::flush;
     {
         cmpe492::timer t{ std::cout };
         cmpe492::conv(n1, n2, nw, inp.data(), win.data(), res.data());
