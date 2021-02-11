@@ -5,9 +5,12 @@ import argparse
 import re
 import time
 import csv
+import http.server
+import socketserver
+import threading
 from datetime import datetime
 from typing import List
-
+from selenium import webdriver
 
 class TestFailedError(BaseException):
     pass
@@ -103,8 +106,11 @@ class Native(Platform):
 
 class BrowserBase(Platform):
     def __init__(self, *args, **kwargs):
-        self.browser = kwargs.pop('browser')
         super().__init__(*args, **kwargs)
+        self.driver = self._get_driver()
+
+    def _get_driver(self):
+        raise NotImplementedError
 
     def _do_configure(self):
         if not os.environ.get('EMSDK'):
@@ -114,43 +120,50 @@ class BrowserBase(Platform):
             'emcmake', 'cmake',
             os.getcwd(),
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DCMAKE_CXX_FLAGS=-msimd128 -s TOTAL_MEMORY=1000MB -pthread -s PTHREAD_POOL_SIZE=4 -s EXIT_RUNTIME=1 --emrun'
+            '-DCMAKE_CXX_FLAGS=-msimd128 -s TOTAL_MEMORY=1000MB -pthread -s PTHREAD_POOL_SIZE=4 -s EXIT_RUNTIME=1'
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    def _run_and_get_output(self, file):
+        self.driver.get(f'http://localhost:8000/{self.build_dir}/{file}')
+        output_text = None
+        while not output_text:
+            time.sleep(0.3)
+            output_el = self.driver.find_element_by_id('output')
+            output_text = output_el.get_attribute('value').strip()
+        return output_text
+
     def _do_test(self, task: str, version: str):
-        try:
-            subprocess.check_call([
-                'emrun',
-                '--browser', self.browser,
-                f'{task}/test-{task}_{version}.html',
-                '--kill_exit'
-            ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except subprocess.CalledProcessError:
-            return False
-        return True
+        output_text = self._run_and_get_output('{task}/test-{task}_{version}.html')
+        return not ('FAIL' in output_text)
 
     def _do_benchmark(self, task: str, version: str):
-        output = subprocess.check_output([
-            'emrun',
-            '--browser', self.browser,
-            f'{task}/bench-{task}_{version}.html',
-            '--kill_exit'
-        ], cwd=self.build_dir)
+        output_text = self._run_and_get_output(f'{task}/bench-{task}_{version}.html')
+        return self._parse_running_time(output_text)
 
-        output = output.decode()
-        return self._parse_running_time(output)
-
+    def _do_close(self):
+        self.driver.close()
 
 class Chrome(BrowserBase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs,
-                         browser='/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary')
+    def _get_driver(self):
+        options = webdriver.ChromeOptions()
+        options.binary_location = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
+        options.add_argument('enable-webassembly-simd')
+        options.add_argument('enable-experimental-webassembly-features')
+        options.add_argument('enable-webassembly-threads')
+        options.add_argument('disable-webassembly-tiering')
+        options.add_argument('disable-webassembly-baseline')
+        options.add_argument('disable-webassembly-lazy-compilation')
 
+        return webdriver.Chrome(options=options)
 
 class Firefox(BrowserBase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs,
-                         browser='/Applications/Firefox Nightly.app/Contents/MacOS/firefox')
+    def _get_driver(self):
+        options = webdriver.FirefoxOptions()
+        options.binary_location = '/Applications/Firefox Nightly.app/Contents/MacOS/firefox'
+        profile = webdriver.FirefoxProfile()
+        profile.set_preference('dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled', True)
+        profile.set_preference('javascript.options.wasm_baselinejit', False)
+        return webdriver.Firefox(options=options, firefox_profile=profile)
 
 
 class WASIBase(Platform):
@@ -215,7 +228,7 @@ class Wasmer(WASIBase):
     def _do_test(self, task: str, version: str) -> bool:
         try:
             subprocess.check_call(
-                ['wasmer', 'run', '--enable-all',
+                ['wasmer', 'run', '--enable-all', '--llvm',
                     f'./{task}/test-{task}_{version}'],
                 cwd=self.build_dir,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -225,7 +238,7 @@ class Wasmer(WASIBase):
 
     def _do_benchmark(self, task: str, version: str) -> float:
         output = subprocess.check_output(
-            ['wasmer', 'run', '--enable-all',
+            ['wasmer', 'run', '--enable-all', '--llvm',
                 f'./{task}/bench-{task}_{version}'],
             cwd=self.build_dir)
         output = output.decode()
@@ -246,7 +259,7 @@ class Wasmtime(WASIBase):
     def _do_test(self, task: str, version: str) -> bool:
         try:
             subprocess.check_call(
-                [f'{self.wasmtime_exe}', 'run', '--enable-all',
+                [f'{self.wasmtime_exe}', 'run', '--enable-all', '--cranelift',
                     f'./{task}/test-{task}_{version}'],
                 cwd=self.build_dir,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -256,7 +269,7 @@ class Wasmtime(WASIBase):
 
     def _do_benchmark(self, task: str, version: str) -> float:
         output = subprocess.check_output(
-            [f'{self.wasmtime_exe}', 'run', '--enable-all',
+            [f'{self.wasmtime_exe}', 'run', '--enable-all', '--cranelift',
                 f'./{task}/bench-{task}_{version}'],
             cwd=self.build_dir)
         output = output.decode()

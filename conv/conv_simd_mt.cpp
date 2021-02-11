@@ -122,7 +122,7 @@ conv(const int n1, const int n2, const int nw, float const* inp, float const* wi
         }
     }
 
-    const int num_thr = std::thread::hardware_concurrency();
+    const int num_thr = 4;
     std::vector<std::thread> threads(num_thr);
 
     for (int i = 0; i < num_thr; i++) {

@@ -120,7 +120,7 @@ mm(int n1, int n2, int n3, float const* mat1, float const* mat2, float* res)
         }
     }
 
-    const int num_thr = std::thread::hardware_concurrency();
+    const int num_thr = 4;
     std::vector<std::thread> threads(num_thr);
 
     for (int i = 0; i < num_thr; i++) {
