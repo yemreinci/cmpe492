@@ -153,5 +153,7 @@ main(int argc, char* argv[])
         std::cout << "There are failing tests!" << std::endl;
     }
 
+    std::cout << "========" << std::endl;
+
     return 0;
 }

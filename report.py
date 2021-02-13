@@ -120,14 +120,15 @@ class BrowserBase(Platform):
             'emcmake', 'cmake',
             os.getcwd(),
             '-DCMAKE_BUILD_TYPE=Release',
-            '-DCMAKE_CXX_FLAGS=-msimd128 -s TOTAL_MEMORY=1000MB -pthread -s PTHREAD_POOL_SIZE=4 -s EXIT_RUNTIME=1'
+            '-DCMAKE_CXX_FLAGS=-msimd128 -s TOTAL_MEMORY=1000MB -pthread -s PTHREAD_POOL_SIZE=4 -s EXIT_RUNTIME=1 -s PROXY_TO_PTHREAD'
         ], cwd=self.build_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def _run_and_get_output(self, file):
         self.driver.get(f'http://localhost:8000/{self.build_dir}/{file}')
+
         output_text = None
-        while not output_text:
-            time.sleep(0.3)
+        while (not output_text) or ('========' not in output_text):
+            time.sleep(0.5)
             output_el = self.driver.find_element_by_id('output')
             output_text = output_el.get_attribute('value').strip()
         return output_text

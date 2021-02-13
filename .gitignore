@@ -5,3 +5,6 @@ emsdk
 compile_commands.json
 **/__pycache__
 **/.DS_Store
+reports/
+*.log
+**.ipynb_checkpoints

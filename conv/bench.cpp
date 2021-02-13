@@ -37,5 +37,7 @@ main(int argc, char* argv[])
         cmpe492::conv(n1, n2, nw, inp.data(), win.data(), res.data());
     }
 
+    std::cout << "========" << std::endl;
+
     return 0;
 }

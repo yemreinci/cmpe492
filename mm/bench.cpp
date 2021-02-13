@@ -38,5 +38,7 @@ main(int argc, char* argv[])
         cmpe492::mm(n1, n2, n3, mat1.data(), mat2.data(), res.data());
     }
 
+    std::cout << "========" << std::endl;
+
     return 0;
 }
