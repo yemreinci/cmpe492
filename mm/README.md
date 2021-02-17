@@ -1,29 +1,30 @@
 # Dense Matrix Multiplication
 
-This folder contains various dense matrix multiplication implementations and tools for evaluating them.
+This folder contains dense matrix multiplication implementations and tools for evaluating them.
 
-Here are the explanations for each matrix multiplication implementation, from `mm0` to `mm5`:
+Here are the explanations for each implementation:
 
 ## Implementations
 
-### mm0.cpp
+### mm_base.cpp
 This is the most naive and well-known matrix multiplication implementation. 
 Just 3 for-loops and in the innermost loop, the statement:
 ```
 res[i][j] += a[i][k] * b[k][j]
 ```
 
-### mm1.cpp
-This implementation is the same with `mm0` but it pre-computes the second matrix's transpose. This way, the second matrix is also traversed linearly, allowing for more cache reuse.  
+### mm_linit.cpp
+This implementation is the same with `mm_base` but it pre-computes the second matrix's transpose. This way, the second matrix is also traversed linearly, allowing for more cache reuse.  
 
-### mm2.cpp
-In addition to `mm1`, this one unrolls the innermost loop 4 steps to enable more instruction-level parallelism. 
+### mm_unroll.cpp
+In addition to `mm_linit`, this one unwraps the innermost loop 4 steps to enable more instruction-level parallelism. 
 
-### mm3.cpp
+### mm_simd1.cpp
 This implementation uses vector instructions and also computes the result matrix in 4x4 blocks in order to allow for more register and cache reuse.
 
-### mm4.cpp
-This one adds multi-threading on top of `mm3`.
+### mm_simd2.cpp
+This implementation also uses vector instructions but unlike `mm_simd`, it holds the vectors vertically and uses vector shuffling to compute the result matrix in 8x8 blocks.
 
-### mm5.cpp
-This implementation also uses multi-threading and vector instructions but unlike `mm3` and `mm4`, it holds the vectors vertically and uses vector shuffling to compute the result matrix in 8x8 blocks.
+### mm_simd2_mt.cpp
+This one adds multi-threading on top of `mm_simd2`.
+
